@@ -1,0 +1,36 @@
+name: Update image list
+
+on:
+  push:
+    paths:
+      - 'images/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Generate sorted list
+      run: |
+        cd images
+        find . -type f \( \
+        -iname "*.jpg" -o \
+        -iname "*.jpeg" -o \
+        -iname "*.png" -o \
+        -iname "*.webp" -o \
+        -iname "*.gif" \) \
+        -printf "%T@ %f\n" | sort -nr | cut -d' ' -f2 > ../images.txt
+
+    - name: Convert to JSON
+      run: |
+        jq -R -s -c 'split("\n")[:-1]' images.txt > images.json
+
+    - name: Commit JSON
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git add images.json
+        git commit -m "Auto update images.json" || echo "No changes"
+        git push
